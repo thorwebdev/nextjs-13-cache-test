@@ -7,7 +7,7 @@ export const config = {
 };
 
 const decodeBase64URL = (value: string): string => {
-  return Buffer.from(value, "base64").toString("utf-8");
+  return atob(value.replace(/[-]/g, "+").replace(/[_]/g, "/"));
 };
 
 const jwt =
