@@ -7,21 +7,7 @@ export const config = {
 };
 
 const decodeBase64URL = (value: string): string => {
-  try {
-    // atob is present in all browsers and nodejs >= 16
-    // but if it is not it will throw a ReferenceError in which case we can try to use Buffer
-    // replace are here to convert the Base64-URL into Base64 which is what atob supports
-    // replace with //g regex acts like replaceAll
-    return atob(value.replace(/[-]/g, "+").replace(/[_]/g, "/"));
-  } catch (e) {
-    if (e instanceof ReferenceError) {
-      // running on nodejs < 16
-      // Buffer supports Base64-URL transparently
-      return Buffer.from(value, "base64").toString("utf-8");
-    } else {
-      throw e;
-    }
-  }
+  return Buffer.from(value, "base64").toString("utf-8");
 };
 
 const jwt =
