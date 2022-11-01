@@ -1,23 +1,34 @@
 // Caching data at the edge with Next.js 13 and Supabase
 // See the docs: https://beta.nextjs.org/docs/data-fetching/caching
 import "server-only";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://localhost:54321",
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSJ9.vI9obAHOGyVVKa3pD--kJlyxp-Z2zV9UUMAhKpNLAcU",
-  { global: { fetch } }
-);
 
 export const config = {
   runtime: "experimental-edge",
 };
-export const revalidate = 60; // revalidate this page at most every 60 seconds
+
+const decodeBase64URL = (value: string): string => {
+  try {
+    // atob is present in all browsers and nodejs >= 16
+    // but if it is not it will throw a ReferenceError in which case we can try to use Buffer
+    // replace are here to convert the Base64-URL into Base64 which is what atob supports
+    // replace with //g regex acts like replaceAll
+    return atob(value.replace(/[-]/g, "+").replace(/[_]/g, "/"));
+  } catch (e) {
+    if (e instanceof ReferenceError) {
+      // running on nodejs < 16
+      // Buffer supports Base64-URL transparently
+      return Buffer.from(value, "base64").toString("utf-8");
+    } else {
+      throw e;
+    }
+  }
+};
+
+const jwt =
+  "eyJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNjY3Mjc0NzAzLCJzdWIiOiI2NDI5ZjM1Ny04OGIxLTRmZDItYWY2Mi0xNjc5OGY1MWY5ODIiLCJlbWFpbCI6InRob3JAc3VwYWJhc2UuaW8iLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImdvb2dsZSJdfSwidXNlcl9tZXRhZGF0YSI6eyJhdmF0YXJfdXJsIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUxtNXd1MTNwVnZOcHFuMVRYSzZ3ejFvcUJwbTlKcUJpOHl0WTRQcTEwS3Y9czk2LWMiLCJlbWFpbCI6InRob3JAc3VwYWJhc2UuaW8iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZnVsbF9uYW1lIjoiVGhvciBTY2hhZWZmIiwiaXNzIjoiaHR0cHM6Ly93d3cuZ29vZ2xlYXBpcy5jb20vdXNlcmluZm8vdjIvbWUiLCJuYW1lIjoiVGhvciBTY2hhZWZmIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FMbTV3dTEzcFZ2TnBxbjFUWEs2d3oxb3FCcG05SnFCaTh5dFk0UHExMEt2PXM5Ni1jIiwicHJvdmlkZXJfaWQiOiIxMTExNjAwODI5NTY5NTM0NDI4NDkiLCJzdWIiOiIxMTExNjAwODI5NTY5NTM0NDI4NDkifSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJzZXNzaW9uX2lkIjoiMjkwMGE3YTEtY2NkYy00YmMyLThlNWQtNTJjOWJhMzBiNmMyIn0";
 
 export default async function PostList() {
-  console.log("fetching data");
-  const { data, error } = await supabase.from("articles").select("*");
+  const data = JSON.parse(decodeBase64URL(jwt));
 
-  return <pre>{JSON.stringify({ data, error }, null, 2)}</pre>;
+  return <pre>{JSON.stringify({ data }, null, 2)}</pre>;
 }
